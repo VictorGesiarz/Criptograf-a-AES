@@ -1,78 +1,136 @@
-
 class G_F:
-	"""
-	Genera un cuerpo finito usando como polinomio irreducible el dado
-	representado como un entero. Por defecto toma el polinomio del AES.
-	Los elementos del cuerpo los representaremos por enteros 0<= n <= 255.
-	"""
+    """
+    Generates a finite field using the given irreducible polynomial represented as an integer.
+    By default, it uses the AES polynomial. The elements of the field are represented by integers 0 <= n <= 255.
+    """
+    
+    def __init__(self, polinomio_irreducible=0x11B) -> None:
+        """
+        Initializes the field with the given irreducible polynomial.
+        Also creates the EXP and LOG tables for efficient multiplication and inversion.
+        """
+        self.polinomio_irreducible = polinomio_irreducible
+        self.table_exp = [0] * 512 
+        self.table_log = [0] * 256
+        self.generator = self._encontrar_generador()
+        self._crear_tablas()
+    
 
-	def __init__(self, polinomio_irreducible = 0x11B) -> None:
-		"""
-		Entrada: un entero que representa el polinomio para construir el cuerpo
-		Tabla_EXP y Tabla_LOG dos tablas, la primera tal que en la posición
-		i-ésima tenga valor a=g**i y la segunda tal que en la posición a-ésima
-		tenga el valor i tal que a=g**i. (g generador del cuerpo finito
-		representado por el menor entero entre 0 y 255.)
-		"""
-		self.polinomio_irreducible = polinomio_irreducible
-		self.table_exp = None
-		self.table_log = None
-
-
-	def _creaet_tables(self) -> int:
-		pass
-
-
-	def _find_generator(self) -> int:
-		pass
-
-
-	def suma(self, a, b) -> bin:
-		"""
-		Entrada: un elemento del cuerpo representado por un entero entre 0 y 255
-		Salida: un elemento del cuerpo representado por un entero entre 0 y 255
-		que es la suma módulo 2 entre los dos polinomios. 
-		"""
-		return a ^ b 
-
-
-	def xTimes(self, n): 
-		"""
-		Entrada: un elemento del cuerpo representado por un entero entre 0 y 255
-		Salida: un elemento del cuerpo representado por un entero entre 0 y 255
-		que es el producto en el cuerpo de 'n' y 0x02 (el polinomio X).
-		"""
-		result = n << 1
-		if result >= 256: 
-			return self.suma(result, self.polinomio_irreducible) 
-		return result
+    def _encontrar_generador(self) -> int:
+        """
+        Tries different numbers to find a valid generator that covers all elements in the field.
+        """
+        for candidate in range(2, 256):
+            seen_elements = set()
+            element = 1
+            
+            for _ in range(255):
+                seen_elements.add(element)
+                element = self.producto_lento(element, candidate)
+            
+            if len(seen_elements) == 255:
+                print(f'Generator found: {candidate}')
+                return candidate
+        raise ValueError("No valid generator found")
 
 
-	def producto(self, a, b):
-		"""
-		Entrada: dos elementos del cuerpo representados por enteros entre 0 y 255
-		Salida: un elemento del cuerpo representado por un entero entre 0 y 255
-		que es el producto en el cuerpo de la entrada.
-		Atención: Se valorará la eficiencia. No es lo mismo calcularlo
-		usando la definición en términos de polinomios o calcular
-		usando las tablas Tabla_EXP y Tabla_LOG.
-		"""
+    def _crear_tablas(self) -> None:
+        """
+        Creates the EXP and LOG tables using the found generator.
+        """
+        x = 1 
+        for i in range(255):
+            self.table_exp[i] = x 
+            self.table_log[x] = i 
+            x = self.producto_lento(x, self.generator)
+    
+        for i in range(255, 512):
+            self.table_exp[i] = self.table_exp[i - 255]
+		
+
+    def suma(self, a, b) -> int:
+        """
+        Returns the sum (XOR) of two elements in the field.
+        """
+        return a ^ b
 
 
-	def inverso(self, n):
-		"""
-		Entrada: un elementos del cuerpo representado por un entero entre 0 y 255
-		Salida: 0 si la entrada es 0,
-		el inverso multiplicativo de n representado por un entero entre
-		1 y 255 si n <> 0.
-		Atención: Se valorará la eficiencia.
-		"""
+    def xTimes(self, n) -> int:
+        """
+        Multiplies a given element n by the polynomial X (i.e., shifts left and reduces if needed).
+        """
+        result = n << 1
+        if result >= 256:
+            result ^= self.polinomio_irreducible
+        return result
+    
+
+    def producto_lento(self, a, b) -> int:
+        """
+        Multiplies 2 polynomials the slow way. 
+        """
+        result = 0
+        while b > 0:
+            if b & 1: 
+                result ^= a 
+            a = self.xTimes(a) 
+            b >>= 1 
+        return result
 
 
+    def producto(self, a, b) -> int:
+        """
+        Returns the product of two elements in the field using the EXP and LOG tables for efficiency.
+        """
+        if a == 0 or b == 0:
+            return 0
+        log_sum = self.table_log[a] + self.table_log[b]
+        return self.table_exp[log_sum]
+    
+
+    def inverso(self, n) -> int:
+        """
+        Returns the multiplicative inverse of n in the field. If n == 0, returns 0.
+        """
+        if n == 0:
+            return 0
+        log_n = self.table_log[n]
+        inv_log = 255 - log_n
+        return self.table_exp[inv_log]
+    
+
+    def division(self, a, b) -> int: 
+        """
+        Returns the division between a and b.
+        """
+        if a == 0 or b == 0:
+            return 0
+        log_sum = self.table_log[a] - self.table_log[b]
+        return self.table_exp[log_sum]
+
+
+
+# Test the class
 P = G_F()
-n1 = 5
-n2 = 254
+n1 = 10
+n2 = 15
 
-print(f'Los dos números que tenemos son: {n1} y {n2}')
-resultado = P.xTimes(n2)
-print(f'El resultado de sumarlos es: {resultado}')
+print(f'The two numbers we have are: {n1} and {n2}')
+
+sum_result = P.suma(n1, n2)
+print(f'The result of their sum is: {sum_result}')
+
+slow_product_result = P.producto_lento(n1, n2)
+print(f'The result of their slow product is: {slow_product_result}')
+
+product_result = P.producto(n1, n2)
+print(f'The result of their fast product is: {product_result}')
+
+division_result = P.division(10, 15)
+print(f'The result of the division is: {division_result}')
+
+inverse_n1 = P.inverso(n1)
+print(f'The inverse of {n1} in the field is: {inverse_n1}')
+
+inverse_n2 = P.inverso(n2)
+print(f'The inverse of {n2} in the field is: {inverse_n2}')
