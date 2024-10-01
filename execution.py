@@ -5,6 +5,12 @@ finite_field = G_F()
 
 a = FiniteNumber(5, finite_field)
 b = FiniteNumber(3, finite_field)
+print(f'The numbers are: {a} and {b}')
+FiniteNumber.set_format('binary')
+print(f'The numbers are: {a} and {b}')
+FiniteNumber.set_format('hex')
+print(f'The numbers are: {a} and {b}')
+FiniteNumber.set_format('decimal')
 
 # Addition in the finite field
 sum_result = a + b

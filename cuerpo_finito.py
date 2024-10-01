@@ -111,9 +111,27 @@ class G_F:
 
 
 class FiniteNumber:
-    def __init__(self, number, FiniteField) -> None:
+    _display_format = "decimal" 
+
+    def __init__(self, number, FiniteField, format='Decimal') -> None:
         self.FiniteField = FiniteField  # The finite field instance (e.g., G_F)
         self.number = number % 256  # Ensure the number is within the valid range of the field (0-255)
+        self.format = format
+
+    @classmethod
+    def set_format(cls, display_format):
+        """Sets the display format for all FiniteNumber instances."""
+        if display_format not in {"decimal", "binary", "hex"}:
+            raise ValueError("Invalid format. Choose 'decimal', 'binary', or 'hex'.")
+        cls._display_format = display_format
+
+    def as_bin(self):
+        """ Returns the number in binary form """
+        return f"{self.number:08b}"
+    
+    def as_hex(self):
+        """ Returns the number in hexadecimal form """
+        return f"{self.number:02X}"
 
     def __add__(self, other):
         if isinstance(other, FiniteNumber) and self.FiniteField == other.FiniteField:
@@ -149,12 +167,17 @@ class FiniteNumber:
         return isinstance(other, FiniteNumber) and self.number == other.number and self.FiniteField == other.FiniteField
 
     def __str__(self):
-        return str(self.number)
+        if FiniteNumber._display_format == "decimal":
+            return str(self.number)
+        elif FiniteNumber._display_format == "binary":
+            return self.as_bin()
+        elif FiniteNumber._display_format == "hex":
+            return self.as_hex()
 
     def __repr__(self):
         return f"FiniteNumber({self.number}, FiniteField)"
 
     def inverse(self):
-        """Finds the multiplicative inverse of the number in the finite field."""
+        """Finds the multiplicative inverse of the number in the finite field. """
         result = self.FiniteField.inverso(self.number)
         return FiniteNumber(result, self.FiniteField)
