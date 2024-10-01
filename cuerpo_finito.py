@@ -121,6 +121,10 @@ class FiniteNumber:
             return FiniteNumber(result, self.FiniteField)
         raise ValueError("Both numbers must be from the same finite field")
 
+    def __sub__(self, other):
+        # Subtraction is equivalent to addition in the field
+        return self + other
+
     def __mul__(self, other):
         if isinstance(other, FiniteNumber) and self.FiniteField == other.FiniteField:
             result = self.FiniteField.producto(self.number, other.number)

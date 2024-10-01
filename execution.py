@@ -8,15 +8,15 @@ b = FiniteNumber(3, finite_field)
 
 # Addition in the finite field
 sum_result = a + b
-print(f"({a}) + ({b}) in the field = {sum_result}")
+print(f"{a} + {b} in the field = {sum_result}")
 
 # Multiplication in the finite field
 product_result = a * b
-print(f"({a}) * ({b}) in the field = {product_result}")
+print(f"{a} * {b} in the field = {product_result}")
 
 division_result = a / b
-print(f"({a}) / ({b}) in the field = {division_result}")
+print(f"{a} / {b} in the field = {division_result}")
 
 # Inverse in the finite field
 inverse_a = a.inverse()
-print(f"Inverse of ({a}) in the field = {inverse_a}")
+print(f"Inverse of {a} in the field = {inverse_a}")
