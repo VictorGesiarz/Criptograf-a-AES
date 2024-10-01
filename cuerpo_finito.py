@@ -154,23 +154,3 @@ class FiniteNumber:
         """Finds the multiplicative inverse of the number in the finite field."""
         result = self.FiniteField.inverso(self.number)
         return FiniteNumber(result, self.FiniteField)
-    
-
-    
-# Test the class with the previously defined G_F class
-finite_field = G_F()
-
-a = FiniteNumber(5, finite_field)
-b = FiniteNumber(3, finite_field)
-
-# Addition in the finite field
-sum_result = a + b
-print(f"({a.number}) + ({b.number}) in the field: {sum_result}")
-
-# Multiplication in the finite field
-product_result = a * b
-print(f"({a.number}) * ({b.number}) in the field: {product_result}")
-
-# Inverse in the finite field
-inverse_a = a.inverse()
-print(f"Inverse of ({a.number}) in the field: {inverse_a}")
