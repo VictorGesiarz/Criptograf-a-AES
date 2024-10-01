@@ -110,27 +110,67 @@ class G_F:
 
 
 
-# Test the class
-P = G_F()
-n1 = 10
-n2 = 15
+class FiniteNumber:
+    def __init__(self, number, FiniteField) -> None:
+        self.FiniteField = FiniteField  # The finite field instance (e.g., G_F)
+        self.number = number % 256  # Ensure the number is within the valid range of the field (0-255)
 
-print(f'The two numbers we have are: {n1} and {n2}')
+    def __add__(self, other):
+        if isinstance(other, FiniteNumber) and self.FiniteField == other.FiniteField:
+            result = self.FiniteField.suma(self.number, other.number)
+            return FiniteNumber(result, self.FiniteField)
+        raise ValueError("Both numbers must be from the same finite field")
 
-sum_result = P.suma(n1, n2)
-print(f'The result of their sum is: {sum_result}')
+    def __mul__(self, other):
+        if isinstance(other, FiniteNumber) and self.FiniteField == other.FiniteField:
+            result = self.FiniteField.producto(self.number, other.number)
+            return FiniteNumber(result, self.FiniteField)
+        raise ValueError("Both numbers must be from the same finite field")
 
-slow_product_result = P.producto_lento(n1, n2)
-print(f'The result of their slow product is: {slow_product_result}')
+    def __truediv__(self, other):
+        if isinstance(other, FiniteNumber) and self.FiniteField == other.FiniteField:
+            if other.number == 0:
+                raise ZeroDivisionError("Division by zero is not defined in a finite field")
+            
+            # Find the multiplicative inverse of the divisor
+            inverse_other = self.FiniteField.inverso(other.number)
+            
+            # Multiply the dividend by the inverse
+            result = self.FiniteField.producto(self.number, inverse_other)
+            return FiniteNumber(result, self.FiniteField)
+        
+        raise ValueError("Both numbers must be from the same finite field")
 
-product_result = P.producto(n1, n2)
-print(f'The result of their fast product is: {product_result}')
+    def __eq__(self, other):
+        return isinstance(other, FiniteNumber) and self.number == other.number and self.FiniteField == other.FiniteField
 
-division_result = P.division(10, 15)
-print(f'The result of the division is: {division_result}')
+    def __str__(self):
+        return str(self.number)
 
-inverse_n1 = P.inverso(n1)
-print(f'The inverse of {n1} in the field is: {inverse_n1}')
+    def __repr__(self):
+        return f"FiniteNumber({self.number}, FiniteField)"
 
-inverse_n2 = P.inverso(n2)
-print(f'The inverse of {n2} in the field is: {inverse_n2}')
+    def inverse(self):
+        """Finds the multiplicative inverse of the number in the finite field."""
+        result = self.FiniteField.inverso(self.number)
+        return FiniteNumber(result, self.FiniteField)
+    
+
+    
+# Test the class with the previously defined G_F class
+finite_field = G_F()
+
+a = FiniteNumber(5, finite_field)
+b = FiniteNumber(3, finite_field)
+
+# Addition in the finite field
+sum_result = a + b
+print(f"({a.number}) + ({b.number}) in the field: {sum_result}")
+
+# Multiplication in the finite field
+product_result = a * b
+print(f"({a.number}) * ({b.number}) in the field: {product_result}")
+
+# Inverse in the finite field
+inverse_a = a.inverse()
+print(f"Inverse of ({a.number}) in the field: {inverse_a}")
