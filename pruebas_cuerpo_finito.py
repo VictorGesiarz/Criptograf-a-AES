@@ -1,5 +1,6 @@
 from cuerpo_finito import G_F, FiniteNumber
-    
+
+
 # Test the class with the previously defined G_F class
 finite_field = G_F()
 
