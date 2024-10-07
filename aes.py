@@ -30,8 +30,10 @@ class AES:
 
     def _get_SBox(self):
         SBox = [[0 for _ in range(16)] for _ in range(16)]
-        first_row = 0b11111000
-        affine_matrix = [(first_row >> i | (first_row & 0b1) << (7 - i)) & 0b11111111 for i in range(8)]
+        # first_row = 0b11111000
+        # affine_matrix = [(first_row >> i | (first_row & 0b1) << (7 - i)) & 0b11111111 for i in range(8)]
+
+        affine_matrix = [0b11111000, 0b01111100, 0b00111110, 0b00011111, 0b10001111, 0b11000111, 0b11100011, 0b11110001]
         affine_const = FiniteNumber(0x63, self.G_F)
         
         SBox[0][0] = affine_const
