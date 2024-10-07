@@ -29,17 +29,23 @@ class AES:
 
 
     def _get_SBox(self):
-        SBox = [[0 * 16] * 16]
-        affine_matrix = [
-
-        ]
-        for i in range(0, 256):
+        SBox = [[0 for _ in range(16)] for _ in range(16)]
+        first_row = 0b11111000
+        affine_matrix = [(first_row >> i | (first_row & 0b1) << (7 - i)) & 0b11111111 for i in range(8)]
+        affine_const = FiniteNumber(0x63, self.G_F)
+        
+        SBox[0][0] = affine_const
+        for i in range(1, 256):
             number = FiniteNumber(i, self.G_F)
-
-            number.as_hex()
+            inverse = number.inverse()
             
-
-
+            bits = 0
+            for j in range(8):
+                b = FiniteNumber(affine_matrix[j] & inverse.number, self.G_F).xor_bits()
+                bits = (bits << 1) | b
+            result = FiniteNumber(bits, self.G_F) + affine_const
+            SBox[number.left][number.right] = result
+        return SBox
 
 
     def SubBytes(self, State): ...

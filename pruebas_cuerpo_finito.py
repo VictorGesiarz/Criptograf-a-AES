@@ -4,7 +4,7 @@ from cuerpo_finito import G_F, FiniteNumber
 # Test the class with the previously defined G_F class
 finite_field = G_F()
 
-a = FiniteNumber(5, finite_field)
+a = FiniteNumber(1, finite_field)
 b = FiniteNumber(3, finite_field)
 print(f'The numbers are: {a} and {b}')
 FiniteNumber.set_format('binary')
@@ -27,3 +27,7 @@ print(f"{a} / {b} in the field = {division_result}")
 # Inverse in the finite field
 inverse_a = a.inverse()
 print(f"Inverse of {a} in the field = {inverse_a}")
+
+
+FiniteNumber.set_format('binary')
+print(a.reverse_bits())

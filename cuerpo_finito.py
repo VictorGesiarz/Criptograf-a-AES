@@ -114,9 +114,11 @@ class FiniteNumber:
     _display_format = "decimal" 
 
     def __init__(self, number, FiniteField, format='Decimal') -> None:
-        self.FiniteField = FiniteField  # The finite field instance (e.g., G_F)
-        self.number = number % 256  # Ensure the number is within the valid range of the field (0-255)
+        self.FiniteField = FiniteField  
+        self.number = number % 256 
         self.format = format
+        self.left = (self.number >> 4) & 0xF
+        self.right = self.number & 0xF
 
     @classmethod
     def set_format(cls, display_format):
@@ -132,6 +134,20 @@ class FiniteNumber:
     def as_hex(self):
         """ Returns the number in hexadecimal form """
         return f"{self.number:02X}"
+
+    def xor_bits(self):
+        result = 0
+        number = self.number
+        while number > 0:
+            result ^= (number & 1) 
+            number >>= 1
+        return result
+
+    def reverse_bits(self,):
+        number = self.number
+        binary_str = bin(number)[2:].zfill(8)
+        reversed_binary_str = binary_str[::-1]
+        return FiniteNumber(int(reversed_binary_str, 2), self.FiniteField)
 
     def __add__(self, other):
         if isinstance(other, FiniteNumber) and self.FiniteField == other.FiniteField:
@@ -153,12 +169,7 @@ class FiniteNumber:
         if isinstance(other, FiniteNumber) and self.FiniteField == other.FiniteField:
             if other.number == 0:
                 raise ZeroDivisionError("Division by zero is not defined in a finite field")
-            
-            # Find the multiplicative inverse of the divisor
-            inverse_other = self.FiniteField.inverso(other.number)
-            
-            # Multiply the dividend by the inverse
-            result = self.FiniteField.producto(self.number, inverse_other)
+            result = self.FiniteField.division(self.number, other.number)
             return FiniteNumber(result, self.FiniteField)
         
         raise ValueError("Both numbers must be from the same finite field")
