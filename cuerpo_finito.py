@@ -127,6 +127,21 @@ class FiniteNumber:
             raise ValueError("Invalid format. Choose 'decimal', 'binary', or 'hex'.")
         cls._display_format = display_format
 
+    @classmethod
+    def array_to_FN(cls, array, FiniteField):
+        array_ = [0] * len(array)
+        for i, element in enumerate(array): 
+            array_[i] = FiniteNumber(element, FiniteField)
+        return array_
+
+    @classmethod
+    def matrix_to_FN(cls, matrix, FiniteField):
+        matrix_ = []
+        for i, array in enumerate(matrix): 
+            array_ = FiniteNumber.array_to_FN(array, FiniteField)
+            matrix_.append(array_)
+        return matrix_
+
     def as_bin(self):
         """ Returns the number in binary form """
         return f"{self.number:08b}"

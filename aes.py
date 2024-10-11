@@ -47,25 +47,59 @@ class AES:
         return SBox
 
 
-    def SubBytes(self, State): ...
+    def SubBytes(self, State):
+        for j in range(4):
+            for i in range(4): 
+                number = State[i][j]
+                State[i][j] = self.SBox[number.number]
+        return State
 
-    def InvSubBytes(self, State): ... 
 
-    def ShiftRows(self, State): ... 
+    def InvSubBytes(self, State): ...
+
+
+    def ShiftRows(self, State):
+        for i in range(4):
+            State[i][:] = State[i][i:] + State[i][:i]
+        return State
+
 
     def InvShiftRows(self, State): ... 
 
-    def MixColumns(self, State): ...
+
+    def MixColumns(self, State):
+        n1 = FiniteNumber(0x01, self.G_F)
+        n2 = FiniteNumber(0x02, self.G_F)
+        n3 = FiniteNumber(0x03, self.G_F)
+
+        for col in range(4):
+            s0 = State[0][col]
+            s1 = State[1][col]
+            s2 = State[2][col]
+            s3 = State[3][col]
+
+            State[0][col] = n2 * s0 + n3 * s1 + s2 + s3
+            State[1][col] = s0 + n2 * s1 + n3 * s2 + s3
+            State[2][col] = s0 + s1 + n2 * s2 + n3 * s3
+            State[3][col] = n3 * s0 + s1 + s2 + n2 * s3
+        
+        return State
+
 
     def InvMixColumns(self, State): ...
 
+
     def AddRoundKey(self, State, roundKey): ...
+
 
     def KeyExpansion(self, key): ...
 
+
     def Cipher(self, State, Nr, Expanded_KEY): ...
 
+
     def InvChiper(self, State, Nr, Expanded_KEY): ...
+
 
     def encrypt_file(self, file): 
         """
