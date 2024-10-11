@@ -59,7 +59,12 @@ class AES:
         return State
 
 
-    def InvSubBytes(self, State): ...
+    def InvSubBytes(self, State):
+        for j in range(4):
+            for i in range(4):
+                number = State[i][j]
+                State[i][j] = self.InvSBox[number.number]
+        return State
 
 
     def ShiftRows(self, State):

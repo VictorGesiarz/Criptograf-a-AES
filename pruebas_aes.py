@@ -31,12 +31,16 @@ SubBytes_state = algorithm.SubBytes(State)
 print_matrix(SubBytes_state)
 print()
 
+# InvSBytes_states = algorithm.InvSubBytes(SubBytes_state)
+# print_matrix(InvSBytes_states)
+# print()
+
 ShiftRows_state = algorithm.ShiftRows(SubBytes_state)
 print_matrix(ShiftRows_state)
 print()
 
 # InvSRow_state = algorithm.InvShiftRows(ShiftRows_state)
-# print_FN_matrix(InvSRow_state)
+# print_matrix(InvSRow_state)
 # print()
 
 MixColumns_state = algorithm.MixColumns(ShiftRows_state)
@@ -44,4 +48,4 @@ print_matrix(MixColumns_state)
 print()
 
 # InvMCol_state = algorithm.InvMixColumns(MixColumns_state)
-# print_FN_matrix(InvMCol_state)
+# print_matrix(InvMCol_state)
