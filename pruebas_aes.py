@@ -2,15 +2,19 @@ from cuerpo_finito import G_F, FiniteNumber
 from aes import AES
 
 
-def print_FN_matrix(matrix):
+def print_array(array, row_len=0):
+    for i, number in enumerate(array):
+        print(number, end='\n' if (i % 16 == 15) else ' ')
+
+def print_matrix(matrix):
     for i in matrix:
         for j in i:
             print(j, end=" ")
         print()
 
 
-algorithm = AES(key=bytearray(16))
 FiniteNumber.set_format('hex')
+algorithm = AES(key=bytearray(16))
 
 State = [
     [0x19, 0xa0, 0x9a, 0xe9],
@@ -20,15 +24,15 @@ State = [
 ]
 
 State = FiniteNumber.matrix_to_FN(State, algorithm.G_F)
-print_FN_matrix(State)
+print_matrix(State)
 print()
 
 SubBytes_state = algorithm.SubBytes(State)
-print_FN_matrix(SubBytes_state)
+print_matrix(SubBytes_state)
 print()
 
 ShiftRows_state = algorithm.ShiftRows(SubBytes_state)
-print_FN_matrix(ShiftRows_state)
+print_matrix(ShiftRows_state)
 print()
 
 # InvSRow_state = algorithm.InvShiftRows(ShiftRows_state)
@@ -36,7 +40,7 @@ print()
 # print()
 
 MixColumns_state = algorithm.MixColumns(ShiftRows_state)
-print_FN_matrix(MixColumns_state)
+print_matrix(MixColumns_state)
 print()
 
 # InvMCol_state = algorithm.InvMixColumns(MixColumns_state)

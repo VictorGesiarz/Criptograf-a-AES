@@ -22,18 +22,19 @@ class AES:
         """
         self.polinomio_irreducible = polinomio_irreducible
         self.G_F = G_F(polinomio_irreducible)
-        self.SBox = self._get_SBox()
-        self.InvSBox = []
+        self.SBox, self.InvSBox = self._get_SBox()
         self.Rcon = None
         self.InvMixMatrix = []
 
 
     def _get_SBox(self):
         SBox = [0] * 256
+        InvSBox = [0] * 256
         affine_matrix = [0b11111000, 0b01111100, 0b00111110, 0b00011111, 0b10001111, 0b11000111, 0b11100011, 0b11110001]
         affine_const = FiniteNumber(0x63, self.G_F)
         
         SBox[0] = affine_const
+        InvSBox[affine_const.number] = FiniteNumber(0, self.G_F)
         for i in range(1, 256):
             number = FiniteNumber(i, self.G_F)
             inverse = number.inverse()
@@ -43,8 +44,11 @@ class AES:
                 b = FiniteNumber(affine_matrix[j] & inverse.number, self.G_F).xor_bits()
                 bits = (bits << 1) | b
             result = FiniteNumber(bits, self.G_F) + affine_const
+
             SBox[number.number] = result
-        return SBox
+            InvSBox[result.number] = number
+        
+        return SBox, InvSBox
 
 
     def SubBytes(self, State):
