@@ -64,7 +64,10 @@ class AES:
         return State
 
 
-    def InvShiftRows(self, State): ... 
+    def InvShiftRows(self, State):
+        for i in range(4): 
+            State[i][:] = State[i][-i:] + State[i][:-i]
+        return State
 
 
     def MixColumns(self, State):
@@ -86,7 +89,24 @@ class AES:
         return State
 
 
-    def InvMixColumns(self, State): ...
+    def InvMixColumns(self, State): 
+        ne = FiniteNumber(0x0e, self.G_F)
+        nb = FiniteNumber(0x0b, self.G_F)
+        nd = FiniteNumber(0x0d, self.G_F)
+        n9 = FiniteNumber(0x09, self.G_F)
+
+        for col in range(4):
+            s0 = State[0][col]
+            s1 = State[1][col]
+            s2 = State[2][col]
+            s3 = State[3][col]
+
+            State[0][col] = ne * s0 + nb * s1 + nd * s2 + n9 * s3
+            State[1][col] = n9 * s0 + ne * s1 + nb * s2 + nd * s3
+            State[2][col] = nd * s0 + n9 * s1 + ne * s2 + nb * s3
+            State[3][col] = nb * s0 + nd * s1 + n9 * s2 + ne * s3
+        
+        return State
 
 
     def AddRoundKey(self, State, roundKey): ...
