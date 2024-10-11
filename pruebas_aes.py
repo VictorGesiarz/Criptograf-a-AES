@@ -5,8 +5,5 @@ from aes import AES
 algorithm = AES(key=bytearray(16))
 FiniteNumber.set_format('hex')
 
-for i in range(16):
-    for j in range(16):
-        print(algorithm.SBox[i][j], end=", ")
-    print()
-
+for i, number in enumerate(algorithm.SBox):
+    print(number, end='\n' if (i % 16 == 15) else ' ')

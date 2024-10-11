@@ -115,7 +115,7 @@ class FiniteNumber:
 
     def __init__(self, number, FiniteField, format='Decimal') -> None:
         self.FiniteField = FiniteField  
-        self.number = number % 256 
+        self.number = number 
         self.format = format
         self.left = (self.number >> 4) & 0xF
         self.right = self.number & 0xF
