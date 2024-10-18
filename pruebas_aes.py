@@ -32,7 +32,7 @@ Cipher_key = FiniteNumber.matrix_to_FN(np.array([
 ]), algorithm.G_F)
 
 
-def test_steps(state):
+def test_steps(State, cipher_key):
     print_matrix(State)
     print()
 
@@ -60,7 +60,8 @@ def test_steps(state):
     # InvMCol_state = algorithm.InvMixColumns(MixColumns_state)
     # print_matrix(InvMCol_state)
 
-    AddRoundKey_state = algorithm.AddRoundKey(MixColumns_state, Cipher_key)
+    roundKey = algorithm.KeyExpansion(cipher_key)
+    AddRoundKey_state = algorithm.AddRoundKey(MixColumns_state, roundKey)
     print_matrix(AddRoundKey_state)
     print()
 
@@ -78,4 +79,4 @@ def test_key_expansion(key):
 
 
 # test_key_expansion(Cipher_key)
-test_steps(State)
+test_steps(State, Cipher_key)

@@ -120,7 +120,6 @@ class AES:
 
 
     def AddRoundKey(self, State, roundKey): 
-        roundKey = self.KeyExpansion(roundKey)
         for j in range(State.shape[1]):
             for i in range(State.shape[0]):
                 State[i, j] += roundKey[i, j]
@@ -134,7 +133,7 @@ class AES:
         rot_word = self.SubBytes(rot_word.reshape(1, 4)).flatten()
 
         expanded_key[:, 0] = key[:, 0] + rot_word + self.Rcon
-        for i in range(1, 4):
+        for i in range(1, 4): 
             expanded_key[:, i] = key[:, i] + expanded_key[:, i - 1]
 
         self.Rcon *= FiniteNumber(2, self.G_F)
