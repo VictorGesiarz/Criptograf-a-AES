@@ -119,7 +119,12 @@ class AES:
         return State
 
 
-    def AddRoundKey(self, State, roundKey): ...
+    def AddRoundKey(self, State, roundKey): 
+        roundKey = self.KeyExpansion(roundKey)
+        for j in range(State.shape[1]):
+            for i in range(State.shape[0]):
+                State[i, j] += roundKey[i, j]
+        return State
 
 
     def KeyExpansion(self, key): 

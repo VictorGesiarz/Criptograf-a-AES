@@ -60,6 +60,10 @@ def test_steps(state):
     # InvMCol_state = algorithm.InvMixColumns(MixColumns_state)
     # print_matrix(InvMCol_state)
 
+    AddRoundKey_state = algorithm.AddRoundKey(MixColumns_state, Cipher_key)
+    print_matrix(AddRoundKey_state)
+    print()
+
 
 def test_key_expansion(key):
     print_matrix(key)
@@ -73,4 +77,5 @@ def test_key_expansion(key):
     print_matrix(Expanded_key2)
 
 
-test_key_expansion(Cipher_key)
+# test_key_expansion(Cipher_key)
+test_steps(State)
