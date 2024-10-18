@@ -1,4 +1,5 @@
 from cuerpo_finito import G_F, FiniteNumber
+import numpy as np
 
 
 class AES: 
@@ -23,7 +24,7 @@ class AES:
         self.polinomio_irreducible = polinomio_irreducible
         self.G_F = G_F(polinomio_irreducible)
         self.SBox, self.InvSBox = self._get_SBox()
-        self.Rcon = None
+        self.Rcon = FiniteNumber.array_to_FN(np.array([1, 0, 0, 0], dtype=object), self.G_F)
         self.InvMixMatrix = []
 
 
@@ -52,30 +53,30 @@ class AES:
 
 
     def SubBytes(self, State):
-        for j in range(4):
-            for i in range(4): 
-                number = State[i][j]
-                State[i][j] = self.SBox[number.number]
+        for j in range(State.shape[1]):
+            for i in range(State.shape[0]): 
+                number = State[i, j]
+                State[i, j] = self.SBox[number.number]
         return State
 
 
     def InvSubBytes(self, State):
-        for j in range(4):
-            for i in range(4):
-                number = State[i][j]
-                State[i][j] = self.InvSBox[number.number]
+        for j in range(State.shape[0]):
+            for i in range(State.shape[1]):
+                number = State[i, j]
+                State[i, j] = self.InvSBox[number.number]
         return State
 
 
     def ShiftRows(self, State):
         for i in range(4):
-            State[i][:] = State[i][i:] + State[i][:i]
+            State[i] = np.roll(State[i], -i) 
         return State
 
 
     def InvShiftRows(self, State):
-        for i in range(4): 
-            State[i][:] = State[i][-i:] + State[i][:-i]
+        for i in range(4):
+            State[i] = np.roll(State[i], i) 
         return State
 
 
@@ -85,15 +86,15 @@ class AES:
         n3 = FiniteNumber(0x03, self.G_F)
 
         for col in range(4):
-            s0 = State[0][col]
-            s1 = State[1][col]
-            s2 = State[2][col]
-            s3 = State[3][col]
+            s0 = State[0, col]
+            s1 = State[1, col]
+            s2 = State[2, col]
+            s3 = State[3, col]
 
-            State[0][col] = n2 * s0 + n3 * s1 + s2 + s3
-            State[1][col] = s0 + n2 * s1 + n3 * s2 + s3
-            State[2][col] = s0 + s1 + n2 * s2 + n3 * s3
-            State[3][col] = n3 * s0 + s1 + s2 + n2 * s3
+            State[0, col] = n2 * s0 + n3 * s1 + s2 + s3
+            State[1, col] = s0 + n2 * s1 + n3 * s2 + s3
+            State[2, col] = s0 + s1 + n2 * s2 + n3 * s3
+            State[3, col] = n3 * s0 + s1 + s2 + n2 * s3
         
         return State
 
@@ -105,15 +106,15 @@ class AES:
         n9 = FiniteNumber(0x09, self.G_F)
 
         for col in range(4):
-            s0 = State[0][col]
-            s1 = State[1][col]
-            s2 = State[2][col]
-            s3 = State[3][col]
+            s0 = State[0, col]
+            s1 = State[1, col]
+            s2 = State[2, col]
+            s3 = State[3, col]
 
-            State[0][col] = ne * s0 + nb * s1 + nd * s2 + n9 * s3
-            State[1][col] = n9 * s0 + ne * s1 + nb * s2 + nd * s3
-            State[2][col] = nd * s0 + n9 * s1 + ne * s2 + nb * s3
-            State[3][col] = nb * s0 + nd * s1 + n9 * s2 + ne * s3
+            State[0, col] = ne * s0 + nb * s1 + nd * s2 + n9 * s3
+            State[1, col] = n9 * s0 + ne * s1 + nb * s2 + nd * s3
+            State[2, col] = nd * s0 + n9 * s1 + ne * s2 + nb * s3
+            State[3, col] = nb * s0 + nd * s1 + n9 * s2 + ne * s3
         
         return State
 
@@ -121,7 +122,18 @@ class AES:
     def AddRoundKey(self, State, roundKey): ...
 
 
-    def KeyExpansion(self, key): ...
+    def KeyExpansion(self, key): 
+        expanded_key = np.empty(key.shape, dtype=object)
+        rot_word = key[:, 3]
+        rot_word = np.roll(rot_word, -1) 
+        rot_word = self.SubBytes(rot_word.reshape(1, 4)).flatten()
+
+        expanded_key[:, 0] = key[:, 0] + rot_word + self.Rcon
+        for i in range(1, 4):
+            expanded_key[:, i] = key[:, i] + expanded_key[:, i - 1]
+
+        self.Rcon *= FiniteNumber(2, self.G_F)
+        return expanded_key
 
 
     def Cipher(self, State, Nr, Expanded_KEY): ...

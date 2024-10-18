@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class G_F:
     """
     Generates a finite field using the given irreducible polynomial represented as an integer.
@@ -129,17 +132,17 @@ class FiniteNumber:
 
     @classmethod
     def array_to_FN(cls, array, FiniteField):
-        array_ = [0] * len(array)
+        array_ = np.empty(array.shape, dtype=object)
         for i, element in enumerate(array): 
             array_[i] = FiniteNumber(element, FiniteField)
         return array_
 
     @classmethod
     def matrix_to_FN(cls, matrix, FiniteField):
-        matrix_ = []
+        matrix_ = np.empty(matrix.shape, dtype=object)
         for i, array in enumerate(matrix): 
             array_ = FiniteNumber.array_to_FN(array, FiniteField)
-            matrix_.append(array_)
+            matrix_[i] = array_
         return matrix_
 
     def as_bin(self):
