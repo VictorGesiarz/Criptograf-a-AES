@@ -14,15 +14,8 @@ State = FiniteNumber.matrix_to_FN(np.array([
     [0xbe, 0x2b, 0x2a, 0x08]
 ]), algorithm.G_F)
 
-Cipher_key = FiniteNumber.matrix_to_FN(np.array([
-    [0x2b, 0x28, 0xab, 0x09],
-    [0x7e, 0xae, 0xf7, 0xcf],
-    [0x15, 0xd2, 0x15, 0x4f],
-    [0x16, 0xa6, 0x88, 0x3c]
-]), G_F())
 
-
-def test_steps(State, cipher_key):
+def test_steps(State):
     AES.print_matrix(State)
     print()
 
@@ -50,13 +43,13 @@ def test_steps(State, cipher_key):
     # InvMCol_state = algorithm.InvMixColumns(MixColumns_state)
     # AES.print_matrix(InvMCol_state)
 
-    roundKey = algorithm.KeyExpansion(cipher_key)
+    roundKey = algorithm.KeyExpansion(algorithm.key)
     AddRoundKey_state = algorithm.AddRoundKey(MixColumns_state, roundKey)
     AES.print_matrix(AddRoundKey_state)
     print()
 
 
-def test_key_expansion(key):
+def test_key_expansion():
     expanded_keys = algorithm.KeyExpansion(algorithm.key)
     for expanded_key in expanded_keys:
         AES.print_matrix(expanded_key)
@@ -86,5 +79,5 @@ State_to_cipher = FiniteNumber.matrix_to_FN(np.array([
     [0xa8, 0x8d, 0xa2, 0x34]
 ]), algorithm.G_F)
 
-# test_key_expansion(Cipher_key)
+# test_key_expansion()
 test_cipher(State_to_cipher)
