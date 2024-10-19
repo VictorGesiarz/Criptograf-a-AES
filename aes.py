@@ -27,6 +27,17 @@ class AES:
         self.Rcon = FiniteNumber.array_to_FN(np.array([1, 0, 0, 0], dtype=object), self.G_F)
         self.InvMixMatrix = []
 
+    @classmethod
+    def print_array(cls, array, row_len=0):
+        for i, number in enumerate(array):
+            print(number, end='\n' if (i % 16 == 15) else ' ')
+
+    @classmethod
+    def print_matrix(cls, matrix):
+        for i in matrix:
+            for j in i:
+                print(j, end=" ")
+            print()
 
     def _get_SBox(self):
         SBox = [0] * 256
@@ -140,7 +151,17 @@ class AES:
         return expanded_key
 
 
-    def Cipher(self, State, Nr, Expanded_KEY): ...
+    def Cipher(self, State, Nr, Expanded_KEY): 
+        State = self.AddRoundKey(State, Expanded_KEY)
+        Expanded_KEY = self.KeyExpansion(Expanded_KEY)
+        for i in range(Nr):
+            State = self.SubBytes(State)
+            State = self.ShiftRows(State)
+            if i != Nr - 1: 
+                State = self.MixColumns(State)
+            State = self.AddRoundKey(State, Expanded_KEY)
+            Expanded_KEY = self.KeyExpansion(Expanded_KEY)
+        return State, Expanded_KEY
 
 
     def InvChiper(self, State, Nr, Expanded_KEY): ...
