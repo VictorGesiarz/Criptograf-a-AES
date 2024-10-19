@@ -4,7 +4,8 @@ import numpy as np
 
 
 FiniteNumber.set_format('hex')
-algorithm = AES(key=bytearray(16))
+Key = np.array([0x2b, 0x28, 0xab, 0x09, 0x7e, 0xae, 0xf7, 0xcf, 0x15, 0xd2, 0x15, 0x4f, 0x16, 0xa6, 0x88, 0x3c])
+algorithm = AES(key=Key)
 
 State = FiniteNumber.matrix_to_FN(np.array([
     [0x19, 0xa0, 0x9a, 0xe9],
@@ -18,7 +19,7 @@ Cipher_key = FiniteNumber.matrix_to_FN(np.array([
     [0x7e, 0xae, 0xf7, 0xcf],
     [0x15, 0xd2, 0x15, 0x4f],
     [0x16, 0xa6, 0x88, 0x3c]
-]), algorithm.G_F)
+]), G_F())
 
 
 def test_steps(State, cipher_key):
@@ -56,30 +57,25 @@ def test_steps(State, cipher_key):
 
 
 def test_key_expansion(key):
-    AES.print_matrix(key)
-    print()
-
-    Expanded_key = algorithm.KeyExpansion(key)
-    AES.print_matrix(Expanded_key)
-    print()
-
-    Expanded_key2 = algorithm.KeyExpansion(Expanded_key)
-    AES.print_matrix(Expanded_key2)
+    expanded_keys = algorithm.KeyExpansion(algorithm.key)
+    for expanded_key in expanded_keys:
+        AES.print_matrix(expanded_key)
+        print()
 
 
-def test_cipher(state, key):
+def test_cipher(state):
     print("STATE")
     AES.print_matrix(state)
-    print("\nKEY")
-    AES.print_matrix(key)
     print()
 
-    cipher_state, expanded_key = algorithm.Cipher(state, 10, key)
+    cipher_state = algorithm.Cipher(state, algorithm.Nr, algorithm.expanded_key)
     print("CIPHER STATE")
     AES.print_matrix(cipher_state)
     print()
-    print("EXPANDED KEY")
-    AES.print_matrix(expanded_key)
+
+    invcipher_state = algorithm.InvChiper(cipher_state, algorithm.Nr, algorithm.expanded_key)
+    print("DECHIPERED STATE")
+    AES.print_matrix(invcipher_state)
     print()
 
 
@@ -90,11 +86,5 @@ State_to_cipher = FiniteNumber.matrix_to_FN(np.array([
     [0xa8, 0x8d, 0xa2, 0x34]
 ]), algorithm.G_F)
 
-Cipher_key = FiniteNumber.matrix_to_FN(np.array([
-    [0x2b, 0x28, 0xab, 0x09],
-    [0x7e, 0xae, 0xf7, 0xcf],
-    [0x15, 0xd2, 0x15, 0x4f],
-    [0x16, 0xa6, 0x88, 0x3c]
-]), algorithm.G_F)
-
-test_cipher(State_to_cipher, Cipher_key)
+# test_key_expansion(Cipher_key)
+test_cipher(State_to_cipher)

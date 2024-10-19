@@ -32,7 +32,6 @@ class G_F:
                 element = self.producto_lento(element, candidate)
             
             if len(seen_elements) == 255:
-                print(f'Generator found: {candidate}')
                 return candidate
         raise ValueError("No valid generator found")
 

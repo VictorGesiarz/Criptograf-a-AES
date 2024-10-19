@@ -21,11 +21,11 @@ class AES:
         Rcon: equivalente a la tabla 5, p ́ag. 17
         InvMixMatrix : equivalente a la matriz usada en 5.3.3, p ́ag. 24
         """
-        self.polinomio_irreducible = polinomio_irreducible
         self.G_F = G_F(polinomio_irreducible)
         self.SBox, self.InvSBox = self._get_SBox()
-        self.Rcon = FiniteNumber.array_to_FN(np.array([1, 0, 0, 0], dtype=object), self.G_F)
-        self.InvMixMatrix = []
+        self.key = FiniteNumber.matrix_to_FN(np.reshape(key, (4, 4)), self.G_F)
+        self.Nr = self._get_Nr(key)
+        self.expanded_key = self.KeyExpansion(self.key)
 
     @classmethod
     def print_array(cls, array, row_len=0):
@@ -38,6 +38,19 @@ class AES:
             for j in i:
                 print(j, end=" ")
             print()
+
+
+    def _get_Nr(self, key):
+        key_lenght = len(key)
+        if key_lenght == 16:
+            return 10
+        elif key_lenght == 24: 
+            return 12
+        elif key_lenght == 32:
+            return 14
+        else:
+            raise ValueError("Invalid key lenght")
+
 
     def _get_SBox(self):
         SBox = [0] * 256
@@ -138,33 +151,46 @@ class AES:
 
 
     def KeyExpansion(self, key): 
-        expanded_key = np.empty(key.shape, dtype=object)
-        rot_word = key[:, 3]
-        rot_word = np.roll(rot_word, -1) 
-        rot_word = self.SubBytes(rot_word.reshape(1, 4)).flatten()
+        Rcon = FiniteNumber.array_to_FN(np.array([1, 0, 0, 0], dtype=object), self.G_F)
+        expanded_key = [key]
 
-        expanded_key[:, 0] = key[:, 0] + rot_word + self.Rcon
-        for i in range(1, 4): 
-            expanded_key[:, i] = key[:, i] + expanded_key[:, i - 1]
+        for _ in range(self.Nr):
+            previous_key = expanded_key[-1]
+            new_round_key = np.empty(key.shape, dtype=object)
 
-        self.Rcon *= FiniteNumber(2, self.G_F)
+            rot_word = previous_key[:, 3]
+            rot_word = np.roll(rot_word, -1) 
+            rot_word = self.SubBytes(rot_word.reshape(1, 4)).flatten()
+
+            new_round_key[:, 0] = previous_key[:, 0] + rot_word + Rcon
+            for i in range(1, 4): 
+                new_round_key[:, i] = previous_key[:, i] + new_round_key[:, i - 1]
+
+            expanded_key.append(new_round_key)
+            Rcon *= FiniteNumber(2, self.G_F)
         return expanded_key
 
 
     def Cipher(self, State, Nr, Expanded_KEY): 
-        State = self.AddRoundKey(State, Expanded_KEY)
-        Expanded_KEY = self.KeyExpansion(Expanded_KEY)
-        for i in range(Nr):
+        State = self.AddRoundKey(State, Expanded_KEY[0])
+        for i in range(1, Nr + 1):
             State = self.SubBytes(State)
             State = self.ShiftRows(State)
-            if i != Nr - 1: 
+            if i != Nr: 
                 State = self.MixColumns(State)
-            State = self.AddRoundKey(State, Expanded_KEY)
-            Expanded_KEY = self.KeyExpansion(Expanded_KEY)
-        return State, Expanded_KEY
+            State = self.AddRoundKey(State, Expanded_KEY[i])
+        return State
 
 
-    def InvChiper(self, State, Nr, Expanded_KEY): ...
+    def InvChiper(self, State, Nr, Expanded_KEY): 
+        State = self.AddRoundKey(State, Expanded_KEY[-1])
+        for i in range(Nr - 1, -1, -1):
+            State = self.InvShiftRows(State)
+            State = self.InvSubBytes(State)
+            State = self.AddRoundKey(State, Expanded_KEY[i])
+            if i != 0:
+                State = self.InvMixColumns(State)
+        return State
 
 
     def encrypt_file(self, file): 
