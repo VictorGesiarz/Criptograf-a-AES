@@ -4,8 +4,10 @@ import numpy as np
 
 
 FiniteNumber.set_format('hex')
-Key = np.array([0x2b, 0x28, 0xab, 0x09, 0x7e, 0xae, 0xf7, 0xcf, 0x15, 0xd2, 0x15, 0x4f, 0x16, 0xa6, 0x88, 0x3c])
-algorithm = AES(key=Key)
+# Key = np.array([0x2b, 0x28, 0xab, 0x09, 0x7e, 0xae, 0xf7, 0xcf, 0x15, 0xd2, 0x15, 0x4f, 0x16, 0xa6, 0x88, 0x3c])
+# Key = np.array([0x48, 0x87, 0xd4, 0x19, 0x3e, 0x4b, 0xc8, 0xc8, 0xd8, 0x50, 0xc1, 0xe1, 0x2a, 0xdc, 0xb3, 0xab])
+Key = np.array([0x26, 0x5f, 0x23, 0xdd, 0xc4, 0xdf, 0xc4, 0x3f, 0x00, 0xf8, 0x40, 0x1f, 0x44, 0x6d, 0x6c, 0x81])
+algorithm = AES(key=Key, polinomio_irreducible=0x11d)
 
 State = FiniteNumber.matrix_to_FN(np.array([
     [0x19, 0xa0, 0x9a, 0xe9],
@@ -20,7 +22,6 @@ def test_steps(State):
     print()
 
     SubBytes_state = algorithm.SubBytes(State)
-    print(SubBytes_state.shape)
     AES.print_matrix(SubBytes_state)
     print()
 
@@ -43,8 +44,7 @@ def test_steps(State):
     # InvMCol_state = algorithm.InvMixColumns(MixColumns_state)
     # AES.print_matrix(InvMCol_state)
 
-    roundKey = algorithm.KeyExpansion(algorithm.key)
-    AddRoundKey_state = algorithm.AddRoundKey(MixColumns_state, roundKey)
+    AddRoundKey_state = algorithm.AddRoundKey(MixColumns_state, algorithm.expanded_key[1])
     AES.print_matrix(AddRoundKey_state)
     print()
 
@@ -79,5 +79,12 @@ State_to_cipher = FiniteNumber.matrix_to_FN(np.array([
     [0xa8, 0x8d, 0xa2, 0x34]
 ]), algorithm.G_F)
 
+
+# test_steps(State)
 # test_key_expansion()
-test_cipher(State_to_cipher)
+# test_cipher(State_to_cipher)
+
+def test_encript(file):
+    algorithm.encrypt_file(file)
+
+test_encript('wells_the_time_machine.txt')

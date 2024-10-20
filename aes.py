@@ -1,6 +1,7 @@
 from cuerpo_finito import G_F, FiniteNumber
 import numpy as np
-
+import os
+import time
 
 class AES: 
     """
@@ -23,7 +24,7 @@ class AES:
         """
         self.G_F = G_F(polinomio_irreducible)
         self.SBox, self.InvSBox = self._get_SBox()
-        self.key = FiniteNumber.matrix_to_FN(np.reshape(key, (4, 4)), self.G_F)
+        self.key = FiniteNumber.matrix_to_FN(np.reshape(key, (4, 4)).T, self.G_F)
         self.Nr = self._get_Nr(key)
         self.expanded_key = self.KeyExpansion(self.key)
 
@@ -144,10 +145,7 @@ class AES:
 
 
     def AddRoundKey(self, State, roundKey): 
-        for j in range(State.shape[1]):
-            for i in range(State.shape[0]):
-                State[i, j] += roundKey[i, j]
-        return State
+        return State + roundKey
 
 
     def KeyExpansion(self, key): 
@@ -193,6 +191,26 @@ class AES:
         return State
 
 
+    def _add_padding(self, data, block_size=16):
+        padding_length = block_size - (len(data) % block_size)
+        if padding_length == 0:
+            padding_length = 16
+        padding = bytes([padding_length]) * padding_length
+        return data + padding
+
+
+    def _split_into_blocks(self, data, block_size=16):
+        data = self._add_padding(data, block_size)
+        array = []
+        for i in range(0, len(data), block_size):
+            block = data[i:i+block_size]
+            block = np.array(list(block), dtype=np.uint8)
+            block = np.reshape(block, (4, 4)).T
+            block = FiniteNumber.matrix_to_FN(block, self.G_F)
+            array.append(block)
+        return array
+
+
     def encrypt_file(self, file): 
         """
         Entrada: Nombre del fichero a cifrar
@@ -203,6 +221,37 @@ class AES:
         El nombre de fichero cifrado será el obtenido al a~nadir el sufijo .enc
         al nombre del fichero a cifrar: NombreFichero --> NombreFichero.enc
         """
+
+        start = time.time()
+
+        with open('./ValoresTest/' + file, 'rb') as data:
+            blocks = self._split_into_blocks(data.read())
+
+        # IV = os.urandom(16)
+        # iv_block = np.array(list(IV), dtype=np.uint8).reshape((4, 4))
+        # IV = [250, 196, 220, 155, 142, 249, 166, 195, 63, 31, 50, 221, 236, 20, 206, 87]                          #
+        IV = [0x2a, 0x3c, 0x55, 0xec, 0xe2, 0x05, 0x81, 0x1e, 0x51, 0x9c, 0xfa, 0xa9, 0x0b, 0xd4, 0xf2, 0xde]       # ESto son solo valores test, el IV tiene que ser aleatorio
+        iv_block = np.array(IV).reshape((4, 4)).T
+        iv_block = FiniteNumber.matrix_to_FN(iv_block, self.G_F)
+
+        cipher_blocks = []
+        prev_block = iv_block 
+
+        for block in blocks:
+            xor_block = block + prev_block
+            encrypted_block = self.Cipher(xor_block, self.Nr, self.expanded_key)
+            cipher_blocks.append(encrypted_block)
+            prev_block = encrypted_block
+
+        encrypted_filename = file + f"_0x{self.G_F.polinomio_irreducible:02X}_" + "".join([i.as_hex() for i in self.key.flatten()]) + '.enc'
+        with open('./ValoresTest/Results/' + encrypted_filename, 'wb') as enc_file:
+            enc_file.write(bytes(IV))
+            for block in cipher_blocks:
+                for col in block.T:
+                    enc_file.write(bytes([number.number for number in col]))
+
+        end = time.time()
+        print(f"Archivo cifrado guardado como {encrypted_filename} in {round(end - start, 4)} seconds")
 
 
     def decrypt_file(self, file): 
