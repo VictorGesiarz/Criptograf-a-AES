@@ -265,3 +265,39 @@ class AES:
         El nombre de fichero descifrado será el obtenido al añadir el sufijo .dec
         al nombre del fichero a descifrar: NombreFichero --> NombreFichero.dec
         """
+
+        start = time.time() 
+
+        with open('./ValoresTest/Results/' + file, 'rb') as enc_file:
+            # Leemos todo el fichero y lo separamos por bloques de 4x4 y 
+            # hacemos la transpuesta para que esté por columnas
+            blocks = self._split_into_blocks(enc_file.read())
+        
+        # El primer bloque es el IV y el resto son los datos cifrados
+        iv_block = blocks[0]
+        encrypted_block = blocks[1:]
+
+        decrypted_blocks = []
+        prev_block = iv_block
+
+        # Desciframos cada bloque con CBC 
+        for block in encrypted_block: 
+            decrypted_block = self.InvChiper(block, self.Nr, self.expanded_key)
+            original_block = decrypted_block - prev_block
+            decrypted_blocks.append(original_block)
+            prev_block = block
+
+        # Concatenamos todos los bloques 
+        decrypted_data = b''.join(bytes([number.number for number in col]) for block in decrypted_blocks for col in block.T)
+
+        # Eliminamos el padding PKCS7
+        padding_length = decrypted_data[-1]
+        # if padding_length > 0 and padding_length <= 16:
+        decrypted_data = decrypted_data[:-padding_length]
+
+        decrypted_filename = file.replace('.enc', '.dec')
+        with open('./ValoresTest/Results/' + decrypted_filename, 'wb') as dec_file:
+            dec_file.write(decrypted_data)
+
+        end = time.time()
+        print(f"Archivo descifrado guardado como {decrypted_filename} en {round(end - start, 4)} seconds")

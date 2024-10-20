@@ -67,7 +67,7 @@ def test_cipher(state):
     print()
 
     invcipher_state = algorithm.InvChiper(cipher_state, algorithm.Nr, algorithm.expanded_key)
-    print("DECHIPERED STATE")
+    print("DECIPHERED STATE")
     AES.print_matrix(invcipher_state)
     print()
 
@@ -85,6 +85,7 @@ State_to_cipher = FiniteNumber.matrix_to_FN(np.array([
 # test_cipher(State_to_cipher)
 
 def test_encript(file):
-    algorithm.encrypt_file(file)
+    # enc_file = algorithm.encrypt_file(file)
+    algorithm.decrypt_file(file)
 
-test_encript('wells_the_time_machine.txt')
+test_encript('wells_the_time_machine.txt_0x11D_26C400445FDFF86D23C4406CDD3F1F81.enc')
