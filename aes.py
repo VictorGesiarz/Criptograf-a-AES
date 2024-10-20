@@ -24,7 +24,7 @@ class AES:
         """
         self.G_F = G_F(polinomio_irreducible)
         self.SBox, self.InvSBox = self._get_SBox()
-        self.key = FiniteNumber.matrix_to_FN(np.reshape(key, (4, 4)).T, self.G_F)
+        self.key = FiniteNumber.matrix_to_FN(np.reshape(list(key), (4, 4)).T, self.G_F)
         self.Nr = self._get_Nr(key)
         self.expanded_key = self.KeyExpansion(self.key)
 
@@ -63,11 +63,17 @@ class AES:
         InvSBox[affine_const.number] = FiniteNumber(0, self.G_F)
         for i in range(1, 256):
             number = FiniteNumber(i, self.G_F)
-            inverse = number.inverse()
+            inverse = number.inverse().number
             
             bits = 0
             for j in range(8):
-                b = FiniteNumber(affine_matrix[j] & inverse.number, self.G_F).xor_bits()
+                # b = ((inverse >> j) & 1) ^ \
+                #     ((inverse >> (j + 4) % 8) & 1) ^ \
+                #     ((inverse >> (j + 5) % 8) & 1) ^ \
+                #     ((inverse >> (j + 6) % 8) & 1) ^ \
+                #     ((inverse >> (j + 7) % 8) & 1) ^ \
+                #     ((affine_const.number >> j) & 1)
+                b = FiniteNumber(affine_matrix[j] & inverse, self.G_F).xor_bits()
                 bits = (bits << 1) | b
             result = FiniteNumber(bits, self.G_F) + affine_const
 
@@ -226,6 +232,9 @@ class AES:
 
         with open('./ValoresTest/' + file, 'rb') as data:
             blocks = self._split_into_blocks(data.read())
+
+        end = time.time()
+        print(f'Tarda {end - start} segundos en separar en bloques')
 
         # IV = os.urandom(16)
         # iv_block = np.array(list(IV), dtype=np.uint8).reshape((4, 4))
