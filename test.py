@@ -1,12 +1,12 @@
 import time
 import random
-import aes
+import aes_withouNumpy as aes
 
 Polinonios_Irreducibles=[0x11b, 0x1f9]
 NKs = [16]
 
 
-fichero = 'mandril.png'
+fichero = './ValoresTest/Test/mandril.png'
 
 
 for nk in NKs:
