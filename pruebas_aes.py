@@ -71,8 +71,8 @@ def test_cipher(state):
     AES.print_matrix(cipher_state)
     print()
 
-    invcipher_state = algorithm.InvCipher(cipher_state, algorithm.Nr, algorithm.expanded_key)
-    print("DECHIPERED STATE")
+    invcipher_state = algorithm.InvChiper(cipher_state, algorithm.Nr, algorithm.expanded_key)
+    print("DECIPHERED STATE")
     AES.print_matrix(invcipher_state)
     print()
 
