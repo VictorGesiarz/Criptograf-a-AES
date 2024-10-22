@@ -165,15 +165,15 @@ class AES:
 
 
     def _get_Nr(self, key):
-        key_lenght = len(key)
-        if key_lenght == 16:
+        key_length = len(key)
+        if key_length == 16:
             return 10
-        elif key_lenght == 24: 
+        elif key_length == 24: 
             return 12
-        elif key_lenght == 32:
+        elif key_length == 32:
             return 14
         else:
-            raise ValueError("Invalid key lenght")
+            raise ValueError("Invalid key length")
 
 
     def _get_SBox(self):
