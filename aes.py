@@ -1,6 +1,5 @@
-import numpy as np
 import os
-import time
+import copy
 
 
 class G_F:
@@ -15,35 +14,42 @@ class G_F:
         Also creates the EXP and LOG tables for efficient multiplication and inversion.
         """
         self.polinomio_irreducible = polinomio_irreducible
-        self.table_exp = [0] * 512 
-        self.table_log = [0] * 256
-        self.generator = None
-        self._encontrar_generador_y_crear_tablas()
+        self.table_exp = [0] * 512 # Exponentiation table
+        self.table_log = [0] * 256 # Logarithm table
+        self.generator = self._encontrar_generador() # Find a valid generator
+        self._crear_tablas() # Create tables for fast operations
     
-    def _encontrar_generador_y_crear_tablas(self) -> int:
-        """ 
-        Tries different numbers to find a valid generator that covers all elements in the field,
-        and creates the EXP and LOG tables using the found generator.
+    
+    def _encontrar_generador(self) -> int:
+        """
+        Tries different numbers to find a valid generator that covers all elements in the field.
         """
         for candidate in range(2, 256):
-            seen_elements = set()
+            seen_elements = set() # By definition, in a set there are no repetitions
             element = 1
-            x = 1 
-
-            for i in range(255):
-                seen_elements.add(element)
-                element = self.producto_lento(element, candidate)
-
-                self.table_exp[i] = x
-                self.table_log[x] = i
-                x = self.producto_lento(x, candidate)  
-
-            if len(seen_elements) == 255:
-                self.generator = candidate  
-                self.table_exp[255] = x  # Capture the last element generated
-                return candidate
             
+            for _ in range(255):
+                seen_elements.add(element)
+                element = self.producto_lento(element, candidate) # Multiply using slow method
+            
+            if len(seen_elements) == 255: # If the candidate has different results for each power, then it's a valid generator
+                return candidate
         raise ValueError("No valid generator found")
+
+
+    def _crear_tablas(self) -> None:
+        """
+        Creates the EXP and LOG tables using the found generator.
+        """
+        x = 1 
+        for i in range(255):
+            self.table_exp[i] = x 
+            self.table_log[x] = i 
+            x = self.producto_lento(x, self.generator) # Generate next power of the generator
+    
+        # We fill a duplicated table so that it won't be necessary to substract exponents when calculating the 'producto rápido'
+        for i in range(255, 512):
+            self.table_exp[i] = self.table_exp[i - 255] 
 		
 
     def suma(self, a, b) -> int:
@@ -82,7 +88,7 @@ class G_F:
         """
         if a == 0 or b == 0:
             return 0
-        log_sum = (self.table_log[a] + self.table_log[b]) % 255
+        log_sum = self.table_log[a] + self.table_log[b]
         return self.table_exp[log_sum]
     
 
@@ -109,31 +115,34 @@ class G_F:
 
 class AES: 
     """
-    Documento de referencia:
+    Reference document:
     Federal Information Processing Standards Publication (FIPS) 197: Advanced Encryption
     Standard (AES) https://doi.org/10.6028/NIST.FIPS.197-upd1
-    El nombre de los m ́etodos, tablas, etc son los mismos (salvo capitalizaci ́on)
-    que los empleados en el FIPS 197
-    """
+    The names of the methods, tables, etc. are the same (except for capitalization)
+    as those used in FIPS 197
+"""
 
     def __init__(self, key, polinomio_irreducible=0x11B) -> None:
         """
-        Entrada:
-        key: bytearray de 16 24 o 32 bytes
-        Polinomio_Irreducible: Entero que representa el polinomio para construir el cuerpo
-        SBox: equivalente a la tabla 4, p ́ag. 14
-        InvSBOX: equivalente a la tabla 6, p ́ag. 23
-        Rcon: equivalente a la tabla 5, p ́ag. 17
-        InvMixMatrix : equivalente a la matriz usada en 5.3.3, p ́ag. 24
+        Input:
+        key: bytearray of 16, 24, or 32 bytes
+        Polinomio_Irreducible: Integer representing the polynomial used to construct the field
+        SBox: equivalent to table 4, p. 14
+        InvSBox: equivalent to table 6, p. 23
+        Rcon: equivalent to table 5, p. 17
+        InvMixMatrix: equivalent to the matrix used in 5.3.3, p. 24
         """
-        self.G_F = G_F(polinomio_irreducible)
-        self.SBox, self.InvSBox = self._get_SBox()
-        self.key = np.reshape(list(key), (4, 4)).T
-        self.Nr = self._get_Nr(key)
-        self.expanded_key = self.KeyExpansion(self.key)
+        self.G_F = G_F(polinomio_irreducible) # Initialize Galois Field
+        self.SBox, self.InvSBox = self._get_SBox() # Calculate SBox and InvSBox
+        self.key = key 
+        self.Nr = self._get_Nr(key) # Determine the number of rounds
+        self.expanded_key = self.KeyExpansion(self.key) # Expand the key for all rounds
 
     @classmethod
     def print_array(cls, array, row_len=0, format="hex"):
+        """
+        Prints a one-dimensional array in specified format (hex, binary or decimal).
+        """
         for i, j in enumerate(array):
             if format == "hex":
                 s = f'{j:02X}'
@@ -145,6 +154,9 @@ class AES:
 
     @classmethod
     def print_matrix(cls, matrix, format="hex"):
+        """
+        Prints a two-dimensional matrix in specified format (hex, binary or decimal).
+        """
         for i in matrix:
             for j in i:
                 if format == "hex":
@@ -158,18 +170,25 @@ class AES:
 
 
     def _get_Nr(self, key):
-        key_lenght = len(key)
-        if key_lenght == 16:
+        """
+        Determines the number of rounds based on the key length. 
+        """
+        key_length = len(key)
+        if key_length == 16: # AES-128
             return 10
-        elif key_lenght == 24: 
+        elif key_length == 24: # AES-192
             return 12
-        elif key_lenght == 32:
+        elif key_length == 32: # AES-256
             return 14
         else:
-            raise ValueError("Invalid key lenght")
+            raise ValueError("Invalid key length")
 
 
     def _get_SBox(self):
+        """
+        Generates the SBox and InvSBox used for byte substitution. 
+        Implements the affine transformation to create these tables.
+        """
         SBox = [0] * 256
         InvSBox = [0] * 256
         affine_matrix = [0b11111000, 0b01111100, 0b00111110, 0b00011111, 0b10001111, 0b11000111, 0b11100011, 0b11110001]
@@ -182,19 +201,13 @@ class AES:
         
             bits = 0
             for j in range(8):
-                # b = ((inverse >> j) & 1) ^ \
-                #     ((inverse >> (j + 4) % 8) & 1) ^ \
-                #     ((inverse >> (j + 5) % 8) & 1) ^ \
-                #     ((inverse >> (j + 6) % 8) & 1) ^ \
-                #     ((inverse >> (j + 7) % 8) & 1) ^ \
-                #     ((affine_const.number >> j) & 1)
-                b = affine_matrix[j] & inverse
+                b = affine_matrix[j] & inverse # Apply the affine transformation
                 bit = 0
                 while b > 0:
-                    bit ^= (b & 1) 
+                    bit ^= (b & 1) # XOR all bits
                     b >>= 1
-                bits = (bits << 1) | bit
-            result = bits ^ affine_const
+                bits = (bits << 1) | bit # Construct the transformed value
+            result = bits ^ affine_const # Apply the affine constant
 
             SBox[i] = result
             InvSBox[result] = i
@@ -203,219 +216,309 @@ class AES:
 
 
     def SubBytes(self, State):
-        for i in range(State.shape[0]):
-            for j in range(State.shape[1]): 
-                number = State[i, j]
-                State[i, j] = self.SBox[number]
+        """
+        Applies the SubBytes transformation to the state.
+        Each byte is replaced with its corresponding value in SBox.
+        """
+        for i in range(4):
+            for j in range(4): 
+                number = State[i][j]
+                State[i][j] = self.SBox[number] # Substitute using SBox
         return State
 
 
     def InvSubBytes(self, State):
-        for i in range(State.shape[0]):
-            for j in range(State.shape[1]):
-                number = State[i, j]
-                State[i, j] = self.InvSBox[number]
+        """
+        Applies the InvSubBytes transformation to the state.
+        Each byte is replaced with its corresponding value in InvSBox.
+        """
+        for i in range(4):
+            for j in range(4):
+                number = State[i][j]
+                State[i][j] = self.InvSBox[number] # Substitute using InvSBox
         return State
 
 
     def ShiftRows(self, State):
+        """
+        Performs the ShiftRows transformation on the state.
+        Each row is shifted left by its row index.
+        """
         for i in range(4):
-            State[i] = np.roll(State[i], -i) 
+            State[i] = State[i][i:] + State[i][:i] # Shift row i
         return State
 
 
     def InvShiftRows(self, State):
+        """
+        Performs the InvShiftRows transformation on the state.
+        Each row is shifted right by its row index.
+        """
         for i in range(4):
-            State[i] = np.roll(State[i], i) 
+            State[i] = State[i][-i:] + State[i][:-i] # Shift row i to the right
         return State
 
 
     def MixColumns(self, State):
+        """
+        Performs the MixColumns transformation on the state.
+        Combines the bytes in each column using polynomial multiplication.
+        """
         n1 = 0x01
         n2 = 0x02
         n3 = 0x03
 
         for col in range(4):
-            s0 = State[0, col]
-            s1 = State[1, col]
-            s2 = State[2, col]
-            s3 = State[3, col]
+            s0 = State[0][col]
+            s1 = State[1][col]
+            s2 = State[2][col]
+            s3 = State[3][col]
 
-            State[0, col] = self.G_F.producto(n2, s0) ^ self.G_F.producto(n3, s1) ^ s2 ^ s3
-            State[1, col] = s0 ^ self.G_F.producto(n2, s1) ^ self.G_F.producto(n3, s2) ^ s3
-            State[2, col] = s0 ^ s1 ^ self.G_F.producto(n2, s2) ^ self.G_F.producto(n3, s3)
-            State[3, col] = self.G_F.producto(n3, s0) ^ s1 ^ s2 ^ self.G_F.producto(n2, s3)
+            # Calculate new values for each row in the column
+            State[0][col] = self.G_F.producto(n2, s0) ^ self.G_F.producto(n3, s1) ^ s2 ^ s3
+            State[1][col] = s0 ^ self.G_F.producto(n2, s1) ^ self.G_F.producto(n3, s2) ^ s3
+            State[2][col] = s0 ^ s1 ^ self.G_F.producto(n2, s2) ^ self.G_F.producto(n3, s3)
+            State[3][col] = self.G_F.producto(n3, s0) ^ s1 ^ s2 ^ self.G_F.producto(n2, s3)
         
         return State
 
 
-    def InvMixColumns(self, State): 
+    def InvMixColumns(self, State):
+        """
+        Performs the InvMixColumns transformation on the state.
+        Reverses the MixColumns transformation using polynomial multiplication.
+        """
         ne = 0x0e
         nb = 0x0b
         nd = 0x0d
         n9 = 0x09
 
         for col in range(4):
-            s0 = State[0, col]
-            s1 = State[1, col]
-            s2 = State[2, col]
-            s3 = State[3, col]
+            s0 = State[0][col]
+            s1 = State[1][col]
+            s2 = State[2][col]
+            s3 = State[3][col]
 
-            State[0, col] = self.G_F.producto(ne, s0) ^ self.G_F.producto(nb, s1) ^ self.G_F.producto(nd, s2) ^ self.G_F.producto(n9, s3)
-            State[1, col] = self.G_F.producto(n9, s0) ^ self.G_F.producto(ne, s1) ^ self.G_F.producto(nb, s2) ^ self.G_F.producto(nd, s3)
-            State[2, col] = self.G_F.producto(nd, s0) ^ self.G_F.producto(n9, s1) ^ self.G_F.producto(ne, s2) ^ self.G_F.producto(nb, s3)
-            State[3, col] = self.G_F.producto(nb, s0) ^ self.G_F.producto(nd, s1) ^ self.G_F.producto(n9, s2) ^ self.G_F.producto(ne, s3)
+            # Calculate new values for each row in the column
+            State[0][col] = self.G_F.producto(ne, s0) ^ self.G_F.producto(nb, s1) ^ self.G_F.producto(nd, s2) ^ self.G_F.producto(n9, s3)
+            State[1][col] = self.G_F.producto(n9, s0) ^ self.G_F.producto(ne, s1) ^ self.G_F.producto(nb, s2) ^ self.G_F.producto(nd, s3)
+            State[2][col] = self.G_F.producto(nd, s0) ^ self.G_F.producto(n9, s1) ^ self.G_F.producto(ne, s2) ^ self.G_F.producto(nb, s3)
+            State[3][col] = self.G_F.producto(nb, s0) ^ self.G_F.producto(nd, s1) ^ self.G_F.producto(n9, s2) ^ self.G_F.producto(ne, s3)
         
         return State
 
 
-    def AddRoundKey(self, State, roundKey): 
-        return State ^ roundKey
+    def AddRoundKey(self, State, roundKey):
+        """
+        Performs the AddRoundKey transformation by XORing the state with the round key.
+        """
+        for i in range(4):
+            for j in range(4):
+                State[i][j] ^= roundKey[i][j]
+        return State
+    
+
+    def RotWord(self, word):
+        """
+        Shifts the given column of four bytes one position to the left.
+        """
+        rot_word = word[1:] + word[:1]
+        return rot_word
+    
+
+    def SubWord(self, word):
+        """
+        Applies the SubBytes transformation to a given column of four bytes.
+        """
+        sub_word = [self.SBox[element] for element in word]
+        return sub_word
 
 
-    def KeyExpansion(self, key): 
-        Rcon = np.array([1, 0, 0, 0])
-        expanded_key = [key]
+    def KeyExpansion(self, key):
+        """
+        Expands the key into a series of round keys for use in each round.
+        """
+        Rcon = [1, 0, 0, 0] # First column of the Rcon matrix
+        Nk = len(key) // 4 # Number of columns of each block given the key length
+        expanded_key = []
+        
+        # Initial addition of the given key to the expanded_key in arrays of 4 positions (the rows of the expanded_key)
+        for i in range(Nk):
+            expanded_key.append(key[4*i : 4*i + 4])
 
-        for _ in range(self.Nr):
-            previous_key = expanded_key[-1]
-            new_round_key = np.empty(key.shape, dtype=object)
+        # Key expansion process
+        for i in range(Nk, 4 * self.Nr + 4):
+            temp = expanded_key[i-1] # Select the last column
 
-            rot_word = previous_key[:, 3]
-            rot_word = np.roll(rot_word, -1) 
-            rot_word = [self.SBox[i] for i in rot_word]
+            # If it's the first column of the block (varies according to the length of the key)
+            if i % Nk == 0: 
+                temp = self.SubWord(self.RotWord(temp)) # Shift left and substitute with SBox
+                temp = [a ^ b for a,b in zip(temp, Rcon)] # XOR with Rcon
+                Rcon[0] = self.G_F.xTimes(Rcon[0]) # Update Rcon
+            # If the key is of length 32, Nk = 8, apply an extra subword every second fourth column 
+            elif Nk > 6 and i % Nk == 4:
+                temp = self.SubWord(temp) 
 
-            new_round_key[:, 0] = previous_key[:, 0] ^ rot_word ^ Rcon
-            for i in range(1, 4): 
-                new_round_key[:, i] = previous_key[:, i] ^ new_round_key[:, i - 1]
+            # Apply for columns that aren't first in their block
+            new_word = [a ^ b for a,b in zip(expanded_key[i - Nk], temp)] # XOR with the column in position i - Nk (size of the block)
+            expanded_key.append(new_word)
 
-            expanded_key.append(new_round_key)
-            Rcon[0] = self.G_F.xTimes(Rcon[0])
-        return expanded_key
+        # Rearrange expanded keys into blocks
+        expanded_key_blocks = []
+        for i in range(0, (self.Nr + 1) * 4, 4):
+            block = []
+            for col in expanded_key[i:i+4]:
+                block += col
+            expanded_key_blocks.append(self._array_to_block(block)) # Convert the key into an array of 2D arrays
+        return expanded_key_blocks
 
 
     def Cipher(self, State, Nr, Expanded_KEY): 
-        State = self.AddRoundKey(State, Expanded_KEY[0])
-        for i in range(1, Nr + 1):
+        """
+        Performs the AES encryption on the state.
+        Applies a series of transformations for the specified number of rounds.
+        """
+        State = self.AddRoundKey(State, Expanded_KEY[0]) # Initial round key addition
+        for i in range(1, Nr):
             State = self.SubBytes(State)
             State = self.ShiftRows(State)
-            if i != Nr: 
-                State = self.MixColumns(State)
+            State = self.MixColumns(State)
             State = self.AddRoundKey(State, Expanded_KEY[i])
+        State = self.SubBytes(State)
+        State = self.ShiftRows(State)
+        State = self.AddRoundKey(State, Expanded_KEY[i + 1])
         return State
 
 
     def InvCipher(self, State, Nr, Expanded_KEY): 
-        State = self.AddRoundKey(State, Expanded_KEY[-1])
-        for i in range(Nr - 1, -1, -1):
+        """
+        Performs the AES decryption on the state.
+        Applies the inverse transformations for the specified number of rounds.
+        """
+        State = self.AddRoundKey(State, Expanded_KEY[-1]) # Initial round key addition
+        for i in range(Nr - 1, 0, -1):
             State = self.InvShiftRows(State)
             State = self.InvSubBytes(State)
             State = self.AddRoundKey(State, Expanded_KEY[i])
-            if i != 0:
-                State = self.InvMixColumns(State)
+            State = self.InvMixColumns(State)
+        State = self.InvShiftRows(State)
+        State = self.InvSubBytes(State)
+        State = self.AddRoundKey(State, Expanded_KEY[i - 1])
         return State
 
 
     def _add_padding(self, data, block_size=16):
-        padding_length = block_size - (len(data) % block_size)
-        if padding_length == 0:
-            padding_length = 16
-        padding = bytes([padding_length]) * padding_length
+        """
+        Adds PKCS7 padding to the data to make its length a multiple of the block size.
+        """
+        padding_length = block_size - (len(data) % block_size) # Calculate padding length
+        if padding_length == 0: # If the data has already a size multiple of 16
+            padding_length = 16 # Add 16 bytes of padding so we always add padding
+        padding = bytes([padding_length]) * padding_length # Create padding bytes
         return data + padding
 
 
+    def _array_to_block(self, array, row=4, col=4):
+        """
+        Converts a one-dimensional array into a 4x4 block format (list of lists).
+        """
+        block = [[0] * col for _ in range(row)]
+        for j in range(col):
+            for i in range(row):
+                block[i][j] = array[j * col + i]
+        return block
+
+
     def _split_into_blocks(self, data, add_padding=True, block_size=16):
+        """
+        Splits the input data into blocks of a specified size.
+        Optionally adds padding to ensure the data is a multiple of the block size.
+        """
         if add_padding:
-            data = self._add_padding(data, block_size)
+            data = self._add_padding(data, block_size) # Add padding if required
         array = []
         for i in range(0, len(data), block_size):
             block = data[i:i+block_size]
-            block = np.array(list(block), dtype=np.uint8)
-            block = np.reshape(block, (4, 4)).T
-            # block = FiniteNumber.matrix_to_FN(block, self.G_F)
+            block = self._array_to_block(block)
             array.append(block)
         return array
 
 
     def encrypt_file(self, file): 
         """
-        Entrada: Nombre del fichero a cifrar
-        Salida: Fichero cifrado usando la clave utilizada en el constructor de la clase.
-        Para cifrar se usará el modo CBC, con IV generado aleatoriamente
-        y guardado en los 16 primeros bytes del fichero cifrado.
-        El padding usado será PKCS7.    
-        El nombre de fichero cifrado será el obtenido al a~nadir el sufijo .enc
-        al nombre del fichero a cifrar: NombreFichero --> NombreFichero.enc
+        Input: Name of the file to encrypt
+        Output: File encrypted using the key provided in the class constructor.
+        CBC mode will be used for encryption, with an IV generated randomly
+        and stored in the first 16 bytes of the encrypted file.
+        The padding used will be PKCS7.
+        The encrypted file name will be the original file name with the suffix .enc added:
+        FileName --> FileName.enc
         """
 
         with open(file, 'rb') as data:
-            blocks = self._split_into_blocks(data.read())
+            blocks = self._split_into_blocks(data.read()) # Read and split data into blocks
 
-        IV = os.urandom(16)
-        iv_block = np.array(list(IV), dtype=np.uint8).reshape((4, 4)).T
-        # IV = [250, 196, 220, 155, 142, 249, 166, 195, 63, 31, 50, 221, 236, 20, 206, 87]                          #
-        # IV = [0x2a, 0x3c, 0x55, 0xec, 0xe2, 0x05, 0x81, 0x1e, 0x51, 0x9c, 0xfa, 0xa9, 0x0b, 0xd4, 0xf2, 0xde]     # ESto son solo valores test, el IV tiene que ser aleatorio
-        # IV = [0xc2, 0x17, 0xd7, 0x20, 0x60, 0x14, 0x77, 0x14, 0xde, 0xd1, 0xfa, 0x90, 0xd5, 0xac, 0x90, 0x97]       #
-        # iv_block = np.array(IV).reshape((4, 4)).T
+        IV = os.urandom(16) # Generate random IV
+        iv_block = self._array_to_block(IV) # Convert IV to block format
 
         cipher_blocks = []
-        prev_block = iv_block 
+        prev_block = iv_block # Initialize previous block with IV
 
         for block in blocks:
-            xor_block = block ^ prev_block
-            encrypted_block = self.Cipher(xor_block, self.Nr, self.expanded_key)
-            cipher_blocks.append(encrypted_block)
+            xor_block = self.AddRoundKey(block, prev_block) # XOR with previous block
+            encrypted_block = self.Cipher(xor_block, self.Nr, self.expanded_key) # Encrypt block
+            cipher_blocks.append(encrypted_block) # Store encrypted block
             prev_block = encrypted_block
 
-        encrypted_filename = file + '.enc' # f"_0x{self.G_F.polinomio_irreducible:02X}_" + "".join([f'{i:02X}' for i in self.key.flatten()]) +
+        encrypted_filename = file + '.enc' # Create encrypted file name
         with open(encrypted_filename, 'wb') as enc_file:
-            enc_file.write(bytes(IV))
+            enc_file.write(bytes(IV)) # Write IV to file
             for block in cipher_blocks:
-                for col in block.T:
+                for i in range(4):
+                    col = [row[i] for row in block]
                     enc_file.write(bytes([number for number in col]))
 
 
     def decrypt_file(self, file): 
         """
-        Entrada: Nombre del fichero a descifrar
-        Salida: Fichero descifrado usando la clave utilizada en el constructor
-        de la clase.
-        Para descifrar se usará el modo CBC, con el IV guardado en los 16
-        primeros bytes del fichero cifrado, y se eliminará el padding
-        PKCS7 añadido al cifrar el fichero.
-        El nombre de fichero descifrado será el obtenido al añadir el sufijo .dec
-        al nombre del fichero a descifrar: NombreFichero --> NombreFichero.dec
+        Input: Name of the file to decrypt
+        Output: File decrypted using the key provided in the class constructor.
+        CBC mode will be used for decryption, with the IV stored in the first
+        16 bytes of the encrypted file, and the PKCS7 padding added during encryption
+        will be removed.
+        The decrypted file name will be the original file name with the suffix .dec added:
+        FileName --> FileName.dec
         """
 
         with open(file, 'rb') as enc_file:
-            # Leemos todo el fichero y lo separamos por bloques de 4x4 y 
-            # hacemos la transpuesta para que esté por columnas
-            blocks = self._split_into_blocks(enc_file.read(), add_padding=False)
+            # Read and split file into 4x4 blocks and
+            # transpose it so that it is in columns
+            blocks = self._split_into_blocks(enc_file.read(), add_padding=False) 
         
-        # El primer bloque es el IV y el resto son los datos cifrados
-        iv_block = blocks[0]
-        encrypted_block = blocks[1:]
+        iv_block = blocks[0] # The first block is the IV
+        encrypted_blocks = blocks[1:] # Remaining blocks are the encrypted data
 
         decrypted_blocks = []
-        prev_block = iv_block
+        prev_block = iv_block # Initialize previous block with IV
 
-        # Desciframos cada bloque con CBC 
-        for block in encrypted_block: 
-            decrypted_block = self.InvCipher(block, self.Nr, self.expanded_key)
-            original_block = decrypted_block ^ prev_block
-            decrypted_blocks.append(original_block)
+        # Decrypt each block using CBC 
+        for block in encrypted_blocks:
+            decrypted_block = self.InvCipher(copy.deepcopy(block), self.Nr, self.expanded_key) # Decrypt block
+            original_block = self.AddRoundKey(decrypted_block, prev_block) # XOR with previous block
+            decrypted_blocks.append(original_block) # Store original block
             prev_block = block
 
-        # Concatenamos todos los bloques 
-        decrypted_data = b''.join(bytes([number for number in col]) for block in decrypted_blocks for col in block.T)
-        # print(decrypted_data)
+        Bytes = []
+        for block in decrypted_blocks: 
+            for i in range(4):
+                col = [row[i] for row in block] # Extract column
+                Bytes.append(bytes([number for number in col])) # Convert to bytes and store
+        decrypted_data = b''.join(Bytes) # Join all bytes into a single byte string
 
-        # Eliminamos el padding PKCS7
-        padding_length = decrypted_data[-1]
-        
-        # if padding_length > 0 and padding_length <= 16:
-        decrypted_data = decrypted_data[:-padding_length]
+        # Remove PKCS7 padding
+        padding_length = decrypted_data[-1] # Get padding length from last byte
+        decrypted_data = decrypted_data[:-padding_length] # Remove padding
 
-        decrypted_filename = file + '.dec'
+        decrypted_filename = file + '.dec' # Create decrypted file name
         with open(decrypted_filename, 'wb') as dec_file:
             dec_file.write(decrypted_data)
