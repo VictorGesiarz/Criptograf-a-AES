@@ -1,3 +1,18 @@
+"""
+---------------------------------------------------------------------------------------------------
+    Authors: 
+        Victor Gesiarz (victor.gesiarz@estudiantat.upc.edu, GitHub: VictorGesiarz)
+        Huilin Ni (huilin.ni@estudiantat.upc.edu, GitHub: HuilinNi15)
+    Date: 23-10-2024
+    Description: 
+        This script implements the Advanced Encryption Standard (AES) algorithm in Python.
+        It includes functionality for encryption and decryption of files using a key provided
+        at initialization. The encryption process follows the AES structure, utilizing Galois 
+        Fields for operations and supporting Cipher Block Chaining (CBC) mode. The script also 
+        manages PKCS7 padding to ensure data integrity.
+---------------------------------------------------------------------------------------------------
+"""
+
 import os
 import copy
 
