@@ -3,7 +3,7 @@ import random
 import aes_withouNumpy as aes
 
 Polinonios_Irreducibles=[0x11b, 0x1f9]
-NKs = [16]
+NKs = [16, 24, 32]
 
 
 fichero = './ValoresTest/Test/mandril.png'
