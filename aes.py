@@ -17,39 +17,33 @@ class G_F:
         self.polinomio_irreducible = polinomio_irreducible
         self.table_exp = [0] * 512 
         self.table_log = [0] * 256
-        self.generator = self._encontrar_generador()
-        self._crear_tablas()
+        self.generator = None
+        self._encontrar_generador_y_crear_tablas()
     
-
-    def _encontrar_generador(self) -> int:
-        """
-        Tries different numbers to find a valid generator that covers all elements in the field.
+    def _encontrar_generador_y_crear_tablas(self) -> int:
+        """ 
+        Tries different numbers to find a valid generator that covers all elements in the field,
+        and creates the EXP and LOG tables using the found generator.
         """
         for candidate in range(2, 256):
             seen_elements = set()
             element = 1
-            
-            for _ in range(255):
+            x = 1 
+
+            for i in range(255):
                 seen_elements.add(element)
                 element = self.producto_lento(element, candidate)
-            
+
+                self.table_exp[i] = x
+                self.table_log[x] = i
+                x = self.producto_lento(x, candidate)  
+
             if len(seen_elements) == 255:
+                self.generator = candidate  
+                self.table_exp[255] = x  # Capture the last element generated
                 return candidate
+            
         raise ValueError("No valid generator found")
-
-
-    def _crear_tablas(self) -> None:
-        """
-        Creates the EXP and LOG tables using the found generator.
-        """
-        x = 1 
-        for i in range(255):
-            self.table_exp[i] = x 
-            self.table_log[x] = i 
-            x = self.producto_lento(x, self.generator)
-    
-        for i in range(255, 512):
-            self.table_exp[i] = self.table_exp[i - 255]
 		
 
     def suma(self, a, b) -> int:
@@ -88,7 +82,7 @@ class G_F:
         """
         if a == 0 or b == 0:
             return 0
-        log_sum = self.table_log[a] + self.table_log[b]
+        log_sum = (self.table_log[a] + self.table_log[b]) % 255
         return self.table_exp[log_sum]
     
 
